@@ -1,0 +1,72 @@
+package com.qa.tests;
+
+import com.qa.base.BaseTest;
+import io.restassured.response.Response;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+/**
+ * Suite de pruebas para el endpoint ValidaCURP.
+ * base.url en config.properties debe ser: http://172.19.54.224:2557
+ */
+public class ValidaCURPTest extends BaseTest {
+
+    @Test(description = "Verifica la validación exitosa de un CURP")
+    public void testValidaCURPExitoso() {
+        String requestBody = "{ \"INSTITUCION_ID\": \"044\", " +
+                "\"REQUEST_ID\": \"ONBNKCUAC177974421\", " +
+                "\"TYPE_PROCESS\": \"TP001\", " +
+                "\"ID_TEMPLATE\": \"124\", " +
+                "\"GOV_ISSUE_IDENT_ID\": \"PEAD890616HDFDGN05\" }";
+
+        Response response = given()
+                .spec(requestSpec)
+                .contentType("application/json")
+                .body(requestBody)
+                .when()
+                .post("/ValidaCURP")
+                .then()
+                .statusCode(200)
+                .body("curpValido", equalTo(true))
+                .body("estatusCURP", equalTo("RCN"))
+                .body("nombre", equalTo("DANIEL GIOVANI"))
+                .body("apellidoPaterno", equalTo("PEDRO"))
+                .body("apellidoMaterno", equalTo("AGUILAR"))
+                .body("sexo", equalTo("H"))
+                .body("fechaNacimiento", equalTo("16/06/1989"))
+                .body("entidadFederativaNacimiento", equalTo("DF"))
+                .body("claveNacionalidad", equalTo("MEX"))
+                .body("tipoDocumentoProbatorio", equalTo(1))
+                .body("codigoRespuestaCCB", equalTo("CRGEN000"))
+                .body("descripcionRespuestaCCB", equalTo("El proceso de validación se ha realizado exitosamente."))
+                .body("descripcionRespuestaRENAPO", equalTo("LA OPERACION SE EJECUTO."))
+                .extract().response();
+
+        Assert.assertNotNull(response.jsonPath().getString("fechaValidacion"),
+                "El campo fechaValidacion no debería ser nulo");
+    }
+
+    @Test(description = "Verifica que el GOV_ISSUE_IDENT_ID enviado coincida con el CURP esperado en la respuesta")
+    public void testValidaCURPCampoRequest() {
+        String curpEsperado = "PEAD890616HDFDGN05";
+        String requestBody = "{ \"INSTITUCION_ID\": \"044\", " +
+                "\"REQUEST_ID\": \"ONBNKCUAC177974422\", " +
+                "\"TYPE_PROCESS\": \"TP001\", " +
+                "\"ID_TEMPLATE\": \"124\", " +
+                "\"GOV_ISSUE_IDENT_ID\": \"" + curpEsperado + "\" }";
+
+        given()
+                .spec(requestSpec)
+                .contentType("application/json")
+                .body(requestBody)
+                .when()
+                .post("/ValidaCURP")
+                .then()
+                .statusCode(200)
+                .body("curpValido", equalTo(true))
+                .body("codigoRespuestaCCB", equalTo("CRGEN000"));
+    }
+}
